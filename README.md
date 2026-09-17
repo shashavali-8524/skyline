@@ -98,7 +98,7 @@ Static supplied data, local SQLite, one-process Streamlit, mocked actions, and n
 - [ ] Test GitHub and Drive links in incognito
 
 ## Deploy to Streamlit Community Cloud in about two minutes
-1. Unzip, replace the coding-assistant placeholder in this README, and push the folder to a **public GitHub repository**. Do not add `.env`.
+1. Push this folder to a **public GitHub repository**. Do not add `.env`.
 2. In Streamlit Community Cloud choose **Create app**, select the repository/branch, set main file to `app.py`, and choose Python 3.11 (the included `runtime.txt` also requests it). Click **Deploy**.
 3. Optional live AI: in the app's **Settings → Secrets**, add `GROQ_API_KEY="..."` and optionally `GROQ_MODEL="llama-3.3-70b-versatile"`, then reboot. Without secrets the labeled offline fallback works.
 4. Open the deployed app, run all three quick-start scenarios, and keep the public app URL with the GitHub and open-access Drive video links.

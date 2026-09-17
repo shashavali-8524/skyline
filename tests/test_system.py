@@ -15,6 +15,15 @@ def test_priya_cash_and_upgrade(agent):
 def test_priya_refund(agent):
  o=agent.process('SK4821X','refund to original payment method'); d=o['decisions'][0]
  assert d.verdict.value=='ALLOW' and '7 business days' in d.reason
+
+def test_multi_turn_reuses_conversation(agent):
+ first=agent.process('SK4821X','What are my options?')
+ second=agent.process('SK4821X','cash refund',conversation_id=first['conversation_id'])
+ assert second['conversation_id']==first['conversation_id']
+ messages=agent.db.rows('messages','WHERE conversation_id=? ORDER BY created_at',(first['conversation_id'],))
+ assert [m['role'] for m in messages]==['customer','assistant','customer','assistant']
+ assert ('different_method_refund','ESCALATE') in pairs(second)
+
 def test_arvind(agent):
  p=pairs(agent.process('TR1190B','I want a hotel for this delay'))
  assert ('meal_voucher','ALLOW') in p and ('lounge_access','ALLOW') in p and ('hotel','DENY') in p

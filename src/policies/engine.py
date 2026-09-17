@@ -7,7 +7,9 @@ class PolicyEngine:
   if {'legal_threat','complaint'} & intents: add(Verdict.ESCALATE,'human_escalation','ESCALATE',POLICIES['ESCALATE'],True); return out
   if 'Cancelled' in seg['status']:
    if 'refund' in intents:
-    if classification.entities.get('refund_method')=='cash': add(Verdict.ESCALATE,'different_method_refund','REFUND',POLICIES['REFUND'],True)
+    if classification.entities.get('refund_method')=='cash':
+     add(Verdict.ESCALATE,'different_method_refund','REFUND',POLICIES['REFUND'],True)
+     add(Verdict.ASK,'cancellation_choice','CANCEL',POLICIES['CANCEL'],False,choices='free priority rebooking within 24h OR full refund to the original payment method')
     else: add(Verdict.ALLOW,'initiate_refund','REFUND',POLICIES['REFUND'],True,scope='full; original payment method; within 7 business days')
    elif 'rebooking' in intents: add(Verdict.ALLOW,'priority_rebooking_search','CANCEL',POLICIES['CANCEL'],True,inventory='not supplied')
    else: add(Verdict.ASK,'cancellation_choice','CANCEL',POLICIES['CANCEL'],False,choices='free priority rebooking within 24h OR full refund')

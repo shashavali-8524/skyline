@@ -14,11 +14,13 @@ with st.sidebar:
  c=CUSTOMERS[pnr]; st.metric('Loyalty tier',c['tier']); st.caption(c['history'])
  for s in c['segments']: st.markdown(f"**{s['flight']} · {s['route']}**  \n{s['date']} at {s['scheduled']}  \n{s['status']}"+(f" · new {s.get('new')}" if s.get('new') else ''))
  mode='Live Groq' if __import__('os').getenv('GROQ_API_KEY') else 'Offline fallback'; st.info(f'AI mode: {mode}')
- if st.button('Reset visible chat',use_container_width=True): st.session_state.pop('messages',None); st.rerun()
+ if st.button('Reset conversation',use_container_width=True):
+  st.session_state.pop('messages',None); st.session_state.pop('conversation_ids',None); st.rerun()
 chat,trace,about=st.tabs(['💬 Resolution workspace','🔎 Audit & trace','🛡️ Architecture & safeguards'])
 with chat:
  st.caption('Exercise date: Wednesday, 23 September 2026 · Source data restricted to the supplied pack')
  st.session_state.setdefault('messages',{})
+ st.session_state.setdefault('conversation_ids',{})
  msgs=st.session_state.messages.setdefault(pnr,[])
  for m in msgs:
   with st.chat_message(m['role']): st.write(m['content'])
@@ -28,7 +30,10 @@ with chat:
  if prompt:
   msgs.append({'role':'user','content':prompt})
   with st.chat_message('user'): st.write(prompt)
-  with st.spinner('Classifying intent, verifying policy, and tracing actions…'): out=agent.process(pnr,prompt)
+  conversation_id=st.session_state.conversation_ids.get(pnr)
+  with st.spinner('Classifying intent, verifying policy, and tracing actions…'):
+   out=agent.process(pnr,prompt,conversation_id=conversation_id)
+  st.session_state.conversation_ids[pnr]=out['conversation_id']
   msgs.append({'role':'assistant','content':out['response']})
   with st.chat_message('assistant'): st.write(out['response'])
   st.subheader('Decision cards')

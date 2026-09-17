@@ -3,7 +3,12 @@ from src.db import Database
 from src.seed_data import CUSTOMERS,SCENARIOS,POLICIES
 from src.orchestrator import Orchestrator
 st.set_page_config(page_title='SkyResolve AI',page_icon='✈️',layout='wide')
-st.markdown('''<style>.block-container{padding-top:1.5rem}.hero{padding:20px;border-radius:18px;background:linear-gradient(120deg,#102a56,#2563eb);color:white}.card{padding:14px;border-radius:12px;background:white;border:1px solid #dce5f2;margin:7px 0}.muted{color:#667085}</style>''',unsafe_allow_html=True)
+st.markdown('''<style>.block-container{padding-top:1.5rem}.hero{padding:20px;border-radius:18px;background:linear-gradient(120deg,#102a56,#2563eb);color:white}.muted{color:#667085}
+div[data-testid="stExpander"]{background:white;border:1px solid #dce5f2;border-radius:12px;margin:7px 0}
+div[data-testid="stExpander"] summary{border-radius:12px;padding:10px 12px}
+div[data-testid="stExpander"] summary:hover{background:#f4f8ff}
+div[data-testid="stExpander"] summary p{font-weight:600}
+</style>''',unsafe_allow_html=True)
 @st.cache_resource
 def services():
  d=Database(); return d,Orchestrator(d)
@@ -22,26 +27,31 @@ with chat:
  st.session_state.setdefault('messages',{})
  st.session_state.setdefault('conversation_ids',{})
  msgs=st.session_state.messages.setdefault(pnr,[])
+ icons={'ALLOW':'✅','DENY':'⛔','ESCALATE':'🧑‍✈️','ASK_CLARIFICATION':'❓'}
+ def decision_cards(m):
+  st.markdown('**Decision cards** - click a card to see the rule, grounded inputs, and authority check')
+  for d in m.get('decisions',[]):
+   with st.expander(f"{icons[d['verdict']]} {d['verdict'].replace('_',' ')}: {d['action'].replace('_',' ').title()}"):
+    st.markdown(f"<span class='muted'>{d['reason']}</span>",unsafe_allow_html=True)
+    st.json({'rule_id':d['rule_id'],'grounded_inputs':d['inputs'],'authority_check':d['authority_check'],'tool_executable':d['executable']})
+  if m.get('trace'): st.caption(m['trace'])
  for m in msgs:
-  with st.chat_message(m['role']): st.write(m['content'])
+  with st.chat_message(m['role']):
+   st.write(m['content'])
+   if m['role']=='assistant': decision_cards(m)
  st.markdown('**Scenario quick start**')
  if st.button(SCENARIOS[pnr],key='scenario',use_container_width=True): prompt=SCENARIOS[pnr]
  else: prompt=st.chat_input('Describe what you need help with…')
  if prompt:
   msgs.append({'role':'user','content':prompt})
-  with st.chat_message('user'): st.write(prompt)
   conversation_id=st.session_state.conversation_ids.get(pnr)
   with st.spinner('Classifying intent, verifying policy, and tracing actions…'):
    out=agent.process(pnr,prompt,conversation_id=conversation_id)
   st.session_state.conversation_ids[pnr]=out['conversation_id']
-  msgs.append({'role':'assistant','content':out['response']})
-  with st.chat_message('assistant'): st.write(out['response'])
-  st.subheader('Decision cards')
-  for d in out['decisions']:
-   icon={'ALLOW':'✅','DENY':'⛔','ESCALATE':'🧑‍✈️','ASK_CLARIFICATION':'❓'}[d.verdict.value]
-   st.markdown(f"<div class='card'><b>{icon} {d.verdict.value}: {d.action.replace('_',' ').title()}</b><br><span class='muted'>{d.reason}</span></div>",unsafe_allow_html=True)
-   with st.expander('Why this decision?'): st.json({'rule_id':d.rule_id,'grounded_inputs':d.inputs,'authority_check':d.authority_check,'tool_executable':d.executable})
-  st.caption(f"Trace ID: {out['correlation_id']} · {out['classification'].mode}")
+  msgs.append({'role':'assistant','content':out['response'],
+   'decisions':[{'verdict':d.verdict.value,'action':d.action,'rule_id':d.rule_id,'reason':d.reason,'inputs':d.inputs,'authority_check':d.authority_check,'executable':d.executable} for d in out['decisions']],
+   'trace':f"Trace ID: {out['correlation_id']} · {out['classification'].mode}"})
+  st.rerun()
 with trace:
  rows=db.rows('audit_events','ORDER BY created_at DESC LIMIT 100')
  st.dataframe(rows,use_container_width=True,hide_index=True)

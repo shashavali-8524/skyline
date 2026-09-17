@@ -57,3 +57,11 @@ def test_groq_provider_structured_path():
  fake=SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
  c=GroqProvider(client=fake).classify('I want a hotel')
  assert c.mode=='live_groq' and c.intents==['hotel'] and c.entities['hotel_scope']=='full_night'
+
+def test_decision_cards_clickable_and_persistent():
+    from streamlit.testing.v1 import AppTest
+    at=AppTest.from_file('../app.py',default_timeout=30); at.run()
+    at.button(key='scenario').click().run()
+    assert len(at.expander)>=1,'decision cards must render as clickable expanders'
+    msgs=at.session_state['messages']['SK4821X']
+    assert any(m.get('decisions') for m in msgs if m['role']=='assistant'),'decisions must persist in chat history'
